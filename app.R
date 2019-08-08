@@ -4,6 +4,7 @@ library(RSQLite)
 library(pool)
 library(shinyjs)
 library(uuid)
+library(dplyr)
 
 #Create sql lite database
 pool <- dbPool(RSQLite::SQLite(), dbname = "db.sqlite")
@@ -52,6 +53,12 @@ server <- function(input, output, session) {
 #load responses_df and make reactive to inputs  
 responses_df <- reactive({
   
+  #make reactive to
+  input$submit
+  input$submit_edit
+  input$copy_button
+  input$delete_button
+  
   dbReadTable(pool, "responses_df")
 
 })  
@@ -74,7 +81,7 @@ observe({
 })
 
 #Form for data entry
-entry_form <- function(){
+entry_form <- function(button_id){
   
   showModal(
     modalDialog(
@@ -92,7 +99,7 @@ entry_form <- function(){
               sliderInput("age", "Age", 0, 100, 1, ticks = TRUE, width = "354px"),
               textAreaInput("comment", "Comment", placeholder = "", height = 100, width = "354px"),
               helpText(labelMandatory(""), paste("Mandatory field.")),
-              actionButton("submit", "Submit")
+              actionButton(button_id, "Submit")
             ),
             easyClose = TRUE
           )
@@ -107,6 +114,7 @@ fieldsAll <- c("name", "sex", "age", "comment")
 epochTime <- function() {
   Sys.time()
 }
+
 #save form data into data_frame format
 formData <- reactive({
   
@@ -117,23 +125,137 @@ formData <- reactive({
                          comment = input$comment,
                          date = as.Date(epochTime()),
                          stringsAsFactors = FALSE)
-  print(formData)
   return(formData)
   
 })
 
-observeEvent(input$add_button, {
+#Add data
+appendData <- function(data){
+  quary <- sqlAppendTable(pool, "responses_df", data, row.names = FALSE)
+  dbExecute(pool, quary)
+}
+
+observeEvent(input$add_button, priority = 20,{
     
-    entry_form()
+    entry_form("submit")
   
 })
 
-observeEvent(input$submit, {
+observeEvent(input$submit, priority = 20,{
   
-  formData()
+  appendData(formData())
+  shinyjs::reset("entry_form")
+  removeModal()
+  
+})
+
+#delete data
+deleteData <- reactive({
+  
+  SQL_df <- dbReadTable(pool, "responses_df")
+  row_selection <- SQL_df[input$responses_table_rows_selected, "row_id"]
+  
+  quary <- lapply(row_selection, function(nr){
+    
+    dbExecute(pool, sprintf('DELETE FROM "responses_df" WHERE "row_id" == ("%s")', nr))
+  })
+})
+
+observeEvent(input$delete_button, priority = 20,{
+  
+  if(length(input$responses_table_rows_selected)>=1 ){
+    deleteData()
+  }
+  
+  showModal(
+    
+    if(length(input$responses_table_rows_selected) < 1 ){
+      modalDialog(
+        title = "Warning",
+        paste("Please select row(s)." ),easyClose = TRUE
+      )
+    })
+})
+
+#copy data
+unique_id <- function(data){
+  replicate(nrow(data), UUIDgenerate())
+}
+
+copyData <- reactive({
+  
+  SQL_df <- dbReadTable(pool, "responses_df")
+  row_selection <- SQL_df[input$responses_table_rows_selected, "row_id"] 
+  SQL_df <- SQL_df %>% filter(row_id %in% row_selection)
+  SQL_df$row_id <- unique_id(SQL_df)
+  
+  quary <- sqlAppendTable(pool, "responses_df", SQL_df, row.names = FALSE)
+  dbExecute(pool, quary)
+
+})
+
+observeEvent(input$copy_button, priority = 20,{
+  
+  if(length(input$responses_table_rows_selected)>=1 ){
+    copyData()
+  }
+  
+  showModal(
+    
+    if(length(input$responses_table_rows_selected) < 1 ){
+      modalDialog(
+        title = "Warning",
+        paste("Please select row(s)." ),easyClose = TRUE
+      )
+    })
+  
+})
+
+#edit data
+observeEvent(input$edit_button, priority = 20,{
+  
+  SQL_df <- dbReadTable(pool, "responses_df")
+  
+  showModal(
+    if(length(input$responses_table_rows_selected) > 1 ){
+      modalDialog(
+        title = "Warning",
+        paste("Please select only one row." ),easyClose = TRUE)
+    } else if(length(input$responses_table_rows_selected) < 1){
+      modalDialog(
+        title = "Warning",
+        paste("Please select a row." ),easyClose = TRUE)
+    })  
+  
+  if(length(input$responses_table_rows_selected) == 1 ){
+    
+    entry_form("submit_edit")
+    
+    updateTextInput(session, "name", value = SQL_df[input$responses_table_rows_selected, "name"])
+    updateSelectInput(session, "sex", selected = SQL_df[input$responses_table_rows_selected, "sex"])
+    updateSliderInput(session, "age", value = SQL_df[input$responses_table_rows_selected, "age"])
+    updateTextAreaInput(session, "comment", value = SQL_df[input$responses_table_rows_selected, "comment"])
+
+  }
+  
 })
 
 
+
+observeEvent(input$submit_edit, priority = 20, {
+  
+  SQL_df <- dbReadTable(pool, "responses_df")
+  row_selection <- SQL_df[input$responses_table_rows_selected, "row_id"] 
+
+  dbExecute(pool, sprintf('UPDATE "responses_df" SET "name" = ?, "sex" = ?, "age" = ?,
+                          "comment" = ? WHERE "row_id" = ("%s")', row_selection), 
+            param = list(input$name,
+                         input$sex,
+                         input$age,
+                         input$comment))
+  removeModal()
+
+})
 
 
 output$responses_table <- DT::renderDataTable({
@@ -146,6 +268,10 @@ output$responses_table <- DT::renderDataTable({
 })
 
 }
+
+
+
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)

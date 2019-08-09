@@ -42,8 +42,8 @@ ui <- fluidPage(
     actionButton("delete_button", "Delete", icon("trash-alt"))
   ),
   br(),
-  fluidRow(
-    dataTableOutput("responses_table")
+  fluidRow(width="50%",
+    dataTableOutput("responses_table", width = "50%")
   )
 )
 
@@ -253,7 +253,9 @@ observeEvent(input$submit_edit, priority = 20, {
 
 output$responses_table <- DT::renderDataTable({
   
-  table <- datatable(responses_df(), 
+  table <- responses_df() %>% select(-row_id) 
+  names(table) <- c("Date", "Name", "Sex", "Age", "Comment")
+  table <- datatable(table, 
                      rownames = FALSE,
                      options = list(searching = FALSE, lengthChange = FALSE)
   )

@@ -1,0 +1,12 @@
+name: sql_table
+title: sql_table
+username:
+account: niels-van-der-velden
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1077005
+bundleId: 2303785
+url: https://niels-van-der-velden.shinyapps.io/sql_table/
+when: 1565346750.82084
+asMultiple: FALSE
+asStatic: FALSE

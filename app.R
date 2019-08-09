@@ -111,10 +111,6 @@ entry_form <- function(button_id){
 #
 fieldsAll <- c("name", "sex", "age", "comment")
 
-epochTime <- function() {
-  Sys.time()
-}
-
 #save form data into data_frame format
 formData <- reactive({
   
@@ -123,7 +119,7 @@ formData <- reactive({
                          sex = input$sex,
                          age = input$age, 
                          comment = input$comment,
-                         date = as.Date(epochTime()),
+                         date = as.character(format(Sys.Date(), format="%d-%m-%Y")),
                          stringsAsFactors = FALSE)
   return(formData)
   
@@ -240,13 +236,10 @@ observeEvent(input$edit_button, priority = 20,{
   
 })
 
-
-
 observeEvent(input$submit_edit, priority = 20, {
   
   SQL_df <- dbReadTable(pool, "responses_df")
-  row_selection <- SQL_df[input$responses_table_rows_selected, "row_id"] 
-
+  row_selection <- SQL_df[input$responses_table_row_last_clicked, "row_id"] 
   dbExecute(pool, sprintf('UPDATE "responses_df" SET "name" = ?, "sex" = ?, "age" = ?,
                           "comment" = ? WHERE "row_id" = ("%s")', row_selection), 
             param = list(input$name,
@@ -268,10 +261,6 @@ output$responses_table <- DT::renderDataTable({
 })
 
 }
-
-
-
-
 
 # Run the application 
 shinyApp(ui = ui, server = server)

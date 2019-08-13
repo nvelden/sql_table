@@ -1,0 +1,12 @@
+name: Editable_SQL_table
+title: Editable_SQL_table
+username:
+account: niels-van-der-velden
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1083719
+bundleId: 2315392
+url: https://niels-van-der-velden.shinyapps.io/Editable_SQL_table/
+when: 1565707633.72329
+asMultiple: FALSE
+asStatic: FALSE

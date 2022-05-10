@@ -99,7 +99,7 @@ entry_form <- function(button_id){
               sliderInput("age", "Age", 0, 100, 1, ticks = TRUE, width = "354px"),
               textAreaInput("comment", "Comment", placeholder = "", height = 100, width = "354px"),
               helpText(labelMandatory(""), paste("Mandatory field.")),
-              actionButton(button_id, "Submit")
+              actionButton(button_id, "submit")  # line  80 is s ...
             ),
             easyClose = TRUE
           )

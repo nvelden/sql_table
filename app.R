@@ -153,7 +153,7 @@ deleteData <- reactive({
   
   quary <- lapply(row_selection, function(nr){
     
-    dbExecute(pool, sprintf('DELETE FROM "responses_df" WHERE "row_id" == ("%s")', nr))
+    dbExecute(pool, sprintf('DELETE FROM "responses_df" WHERE "row_id" == (\'%s\')', nr))
   })
 })
 
